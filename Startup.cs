@@ -11,49 +11,75 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using movies.api.Data;
 
 namespace movies_api
 {
-    public class Startup
-    {
-        public Startup(IConfiguration configuration)
+    
+        public class Startup
         {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-
-            services.AddControllers();
-            services.AddSwaggerGen(c =>
+            readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+            public Startup(IConfiguration configuration)
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "movies_api", Version = "v1" });
-            });
-        }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "movies_api v1"));
+                Configuration = configuration;
             }
 
-            app.UseHttpsRedirection();
+            public IConfiguration Configuration { get; }
 
-            app.UseRouting();
-
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
+            // This method gets called by the runtime. Use this method to add services to the container.
+            public void ConfigureServices(IServiceCollection services)
             {
-                endpoints.MapControllers();
-            });
+                services.AddCors(options =>
+                {
+                    options.AddPolicy(name: MyAllowSpecificOrigins,
+                                      builder =>
+                                      {
+                                          builder.WithOrigins("http://localhost:4200");
+                                      });
+                });
+
+                services.AddControllers();
+
+                services.AddSwaggerGen();
+
+                services.AddTransient<IMovieService, MovieService>();
+            }
+
+            // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+            public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+            {
+                if (env.IsDevelopment())
+                {
+                    app.UseDeveloperExceptionPage();
+                }
+
+                app.UseHttpsRedirection();
+
+                app.UseRouting();
+
+                app.UseCors();
+
+                app.UseAuthorization();
+
+                app.UseEndpoints(endpoints =>
+                {
+
+                    endpoints.MapControllers()
+                             .RequireCors(MyAllowSpecificOrigins);
+
+
+                });
+
+                // Enable middleware to serve generated Swagger as a JSON endpoint.
+                app.UseSwagger();
+
+                // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
+                // specifying the Swagger JSON endpoint.
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "MoviesApi");
+                });
+            }
         }
-    }
+    
 }
